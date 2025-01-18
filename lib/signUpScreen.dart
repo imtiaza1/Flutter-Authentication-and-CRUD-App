@@ -104,19 +104,51 @@ class _HomeState extends State<SignUpScreen> {
                     var phone=phoneController.text.toString();
                     var password=passwordController.text.trim();
                     try {
+                      showDialog(context: context, builder: (BuildContext contex){
+                        return Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      });
                       await FirebaseAuth.instance.createUserWithEmailAndPassword(
                         email: email,
                         password: password,
                       );
-                      print("User created successfully!");
                       SignUp(userName,email,phone,password);
-                      print("data stored ");
-                      Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => SignInScreen())
+                      Navigator.pop(context);
+                      showDialog(context: context, builder: (BuildContext context){
+                        return AlertDialog(
+                          title: Text("Success"),
+                          content: Text("Sign-up was successful!"),
+                          actions: [
+                            TextButton(onPressed: (){
+                              Navigator.pop(context);
+                              Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => SignInScreen())
+                              );
+                            }, child: Text("Ok"))
+                          ],
+                        );
+                      });
+                    } on FirebaseAuthException catch (e) {
+                      Navigator.pop(context);
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text("Error"),
+                            content: Text(e.message?? ""), // Display the error message
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context); // Close dialog
+                                },
+                                child: Text("Ok"),
+                              ),
+                            ],
+                          );
+                        },
                       );
-                    } catch (e) {
-                      print("Error: $e");
                     }
 
                   },
