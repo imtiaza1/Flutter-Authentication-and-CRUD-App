@@ -12,13 +12,14 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   TextEditingController noteController = TextEditingController();
+  TextEditingController updateNoteController=TextEditingController();
   User? user = FirebaseAuth.instance.currentUser;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Home Page",
+          "Dashboard",
           style: TextStyle(color: Colors.black),
         ),
         backgroundColor: Colors.blue,
@@ -43,7 +44,8 @@ class _HomeState extends State<Home> {
             builder: (BuildContext context) {
               return AlertDialog(
                 content: Container(
-                  width: MediaQuery.of(context).size.width * 0.75, // 75% of the screen width
+                  width: MediaQuery.of(context).size.width *
+                      0.75, // 75% of the screen width
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: SingleChildScrollView(
@@ -73,7 +75,10 @@ class _HomeState extends State<Home> {
                                   );
 
                                   // Save the note to Firestore
-                                  await FirebaseFirestore.instance.collection("notes").doc().set({
+                                  await FirebaseFirestore.instance
+                                      .collection("notes")
+                                      .doc()
+                                      .set({
                                     "CreateAt": DateTime.now(),
                                     "Notes": note,
                                     "userId": user?.uid,
@@ -90,7 +95,8 @@ class _HomeState extends State<Home> {
                                     builder: (BuildContext context) {
                                       return AlertDialog(
                                         title: Text("Success"),
-                                        content: Text("Note added successfully!"),
+                                        content:
+                                            Text("Note added successfully!"),
                                         actions: [
                                           TextButton(
                                             onPressed: () {
@@ -104,7 +110,8 @@ class _HomeState extends State<Home> {
                                   );
                                 } catch (e) {
                                   print(e);
-                                  Navigator.pop(context); // Close loading indicator if there's an error
+                                  Navigator.pop(
+                                      context); // Close loading indicator if there's an error
                                 }
                               }
                             },
@@ -154,18 +161,107 @@ class _HomeState extends State<Home> {
             return ListView.builder(
               itemCount: data.length,
               itemBuilder: (context, index) {
-                var note = data[index]; // Fetch the individual note document
+                var note = data[index]["Notes"];
+                var date=data[index]["CreateAt"].toDate().toString();
+                var id=data[index].id;// Fetch the individual note document
                 return Card(
                   child: ListTile(
-                    title: Text(note["Notes"]), // Replace "Notes" with your Firestore field
-                    subtitle: Text("Created at: ${note["CreateAt"]?.toDate().toString()}"),
+                    title: Text(note), // Replace "Notes" with your Firestore field
+                    subtitle: Text(
+                        "Created at: $date"),
                     trailing: Row(
-                      // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.edit,color: Colors.green,),
-                        SizedBox(height: 10.0,),
-                        Icon(Icons.delete,color: Colors.deepOrange,)
+                        GestureDetector(
+                            onTap: () {
+                              showDialog(context: context, builder: (BuildContext context){
+                                return AlertDialog(
+                                  content: Container(
+                                    width: MediaQuery.of(context).size.width *
+                                        0.75,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end, // Align the cancel icon to the right
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () {
+                                                Navigator.pop(context); // Close the dialog on tap
+                                              },
+                                              child: Icon(Icons.cancel, color: Colors.red),
+                                            ),
+                                          ],
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: SingleChildScrollView(
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                TextField(
+                                                  controller: updateNoteController..text="$note",
+                                                  maxLines: null,
+                                                  decoration: InputDecoration(hintText: "Add Notes"),
+                                                ),
+                                                SizedBox(height: 30),
+                                                ElevatedButton(
+                                                  onPressed: () async {
+                                                    var UpdateNote = updateNoteController.text.trim();
+                                                    await FirebaseFirestore.instance.collection("notes").doc(id).update({
+                                                      "Notes":UpdateNote
+                                                    });
+                                                    Navigator.pop(context);
+
+                                                    showDialog(
+                                                      context: context,
+                                                      builder: (BuildContext context) {
+                                                        return AlertDialog(
+                                                          title: Text("Success",style: TextStyle(color: Colors.blue),),
+                                                          content:
+                                                          Text("Note Update successfully!",style: TextStyle(color: Colors.green),),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed: () {
+                                                                Navigator.pop(context);
+                                                              },
+                                                              child: Text("Ok"),
+                                                            ),
+                                                          ],
+                                                        );
+
+                                                      },
+                                                    );
+                                                  },
+                                                  child: Text("Update"),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              });
+                              print(note);
+                              print(id);
+                            },
+                            child: Icon(
+                              Icons.edit,
+                              color: Colors.green,
+                            )),
+                        SizedBox(
+                          height: 10.0,
+                        ),
+                        GestureDetector(
+                            onTap: () async {
+                              await FirebaseFirestore.instance.collection("notes").doc(id).delete();
+                            },
+                            child: Icon(
+                              Icons.delete,
+                              color: Colors.deepOrange,
+                            ))
                       ],
                     ),
                   ),
@@ -180,8 +276,6 @@ class _HomeState extends State<Home> {
           );
         },
       ),
-
     );
   }
 }
-
